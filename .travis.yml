@@ -10,7 +10,7 @@ env:
     - MAJOR_VERSION=0
     - MINOR_VERSION=0
     - PACKAGE_FULL_VERSION=${MAJOR_VERSION}.${MINOR_VERSION}.${TRAVIS_BUILD_NUMBER}
-    - PACKAGE_NAME=helloworld-${PACKAGE_FULL_VERSION}-Linux.deb
+    - PACKAGE_NAME=matrix-${PACKAGE_FULL_VERSION}-Linux.deb
 script:
 - cmake .
 - cmake --build .
