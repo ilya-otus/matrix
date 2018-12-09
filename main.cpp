@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <optional>
 
 template<typename T, T D = T()>
 class CRS {
@@ -12,27 +13,32 @@ public:
     }
 
     void add(const T &value, size_t column, size_t row) {
-        if (exists(column, row)) {
+        if (auto existPos = exists(column, row)) {
             if (value == D) {
-                auto eraseColumn = std::find(colIndex.begin() + rowPeter[row], colIndex.begin() + rowPeter[row + 1], column);
-                values.erase(values.begin() + (eraseColumn - colIndex.begin()));
-                colIndex.erase(eraseColumn);
+                std::cout << "Operation remove" << std::endl;
+                values.erase(values.begin() + *existPos);
+                colIndex.erase(colIndex.begin() + *existPos);
                 for (size_t r = row + 1; r < rowPeter.size(); ++r) {
                     --rowPeter[r];
                 }
-                if (row + 1 == rowPeter.size() && rowPeter[row] == rowPeter[row + 1]) {
-                    rowPeter.erase(rowPeter.end() - 1);
+                if (row + 2 == rowPeter.size()) {
+                    if(auto l = std::lower_bound(rowPeter.begin(), rowPeter.end(), rowPeter.back()); l != rowPeter.end()) {
+                        rowPeter.erase(l+1, rowPeter.end());
+                    }
                 }
             }
             else {
-                auto found = std::lower_bound(colIndex.begin() + rowPeter[row], colIndex.begin() + rowPeter[row + 1], column); // TODO: exclude duplicated operation
-                values[found - colIndex.begin()] = value;
+                std::cout << "Operation change value" << std::endl;
+                values[*existPos] = value;
             }
         } else {
+            std::cout << "Operation create" << std::endl;
             if (row >= rowPeter.size() - 1) {
                 rowPeter.resize(row + 2, rowPeter.back());
             }
-            auto found = std::lower_bound(colIndex.begin() + rowPeter[row], colIndex.begin() + rowPeter[row + 1], column); // TODO: exclude duplicated operation
+            auto begin = colIndex.begin() + rowPeter[row];
+            auto end = colIndex.begin() + rowPeter[row + 1];
+            auto found = std::lower_bound(begin, end, column);
             auto insertedColumn = colIndex.insert(found, column);
             auto pos = insertedColumn - colIndex.begin();
             values.insert(values.begin() + pos, value);
@@ -42,14 +48,16 @@ public:
         }
     }
 
-    bool exists(size_t column, size_t row) {
+    std::optional<size_t> exists(size_t column, size_t row) {
         if (rowPeter[row] != rowPeter[row + 1] && !colIndex.empty()) {
-            auto found = std::lower_bound(colIndex.begin() + rowPeter[row], colIndex.begin() + rowPeter[row + 1], column); // TODO: exclude duplicated operation
-            if (*found == column) {
-                return true;
+            auto begin = colIndex.begin() + rowPeter[row];
+            auto end = colIndex.begin() + rowPeter[row + 1];
+            auto found = std::find(begin, end, column);
+            if (found != end) {
+                return found - colIndex.begin();
             }
         }
-        return false;
+        return {};
     }
 
     void print() {
@@ -72,7 +80,9 @@ public:
         std::cout << std::endl;
     }
 
+
 private:
+
     std::vector<size_t> rowPeter;
     std::vector<size_t> colIndex;
     std::vector<T> values;
@@ -81,21 +91,23 @@ private:
 int main(int argc, char *argv[])
 {
     CRS<int, 0> c1;
+    c1.add(1, 7, 2);
+    c1.print();
     c1.add(1, 2, 0);
     c1.print();
     c1.add(3, 3, 0);
     c1.print();
-    c1.add(5, 7, 0);
-    c1.print();
     c1.add(7, 5, 2);
     c1.print();
-    c1.add(1, 7, 2);
-    c1.print();
     c1.add(5, 7, 0);
     c1.print();
-    c1.add(2, 6, 1);
+    c1.add(5, 7, 10);
     c1.print();
-    c1.add(0, 6, 1);
+    c1.add(0, 7, 10);
+    c1.print();
+    c1.add(2, 6, 10);
+    c1.print();
+    c1.add(0, 6, 10);
     c1.print();
     return 0;
 }
