@@ -5,140 +5,115 @@
 #include <algorithm>
 #include <optional>
 
-template<typename T, T D = T()>
-class CRS {
-    using CrsItem = std::pair<size_t, T>;
+template<typename T>
+using CrsItem = std::pair<size_t, T>;
+template<typename T>
+using SparsedColumn = std::vector<CrsItem<T>>;
 
-    class VectorWrapper {
-        class ValueWrapper {
-        public:
-            ValueWrapper(T &val) : value(val) {}
-            ValueWrapper& operator=(T& val) {
-                std::cerr << "Non-const &operator= val=" << val << std::endl;
-                this->value = val;
-                return *this;
-            }
-            ValueWrapper& operator=(const T& val) {
-                std::cerr << "Const &operator= val=" << val << std::endl;
-                this->value = val;
-                return *this;
-            }
-            friend std::ostream& operator<<(std::ostream& os, const ValueWrapper &v) {
-                os << v.value;
-                return os;
-            }
-        private:
-            T& value;
-        };
-        using WrappedType = std::vector<CrsItem>;
-        using iterator = typename WrappedType::iterator;
-        using reference = typename WrappedType::reference;
-
+template<typename T>
+class Observer {
     public:
-        VectorWrapper() : data() {}
+        virtual void remove(size_t r, size_t c) = 0;
+        virtual T& insert(size_t r, size_t c, const T& v) = 0;
+};
 
-        template<typename InputIt>
-        VectorWrapper(InputIt f, InputIt l) : data(), first(f), last(l) {}
+template<typename T, T D>
+class ValueWrapper {
+public:
+    ValueWrapper(T *val, size_t r, size_t c, Observer<T> *obs)
+      : value(val), row(r), column(c), observer(obs) {}
 
-        iterator erase(iterator pos) {
-            return data.erase(pos);
+    ValueWrapper& operator=(const T& val) {
+        if (*value == D) {
+            value = &(observer->insert(row, column, val));
+        } else if (val == D) {
+            observer->remove(row, column);
+            *value = D;
+        } else {
+            *value = val;
         }
+        return *this;
+    }
 
-        iterator begin() {
-            return data.begin();
-        }
+    friend std::ostream& operator<<(std::ostream& os, const ValueWrapper &v) {
+        os << v.value;
+        return os;
+    }
+private:
+    T* value;
+    size_t row;
+    size_t column;
+    Observer<T> *observer;
+};
 
-        iterator end() {
-            return data.end();
-        }
-
-        iterator insert(iterator pos, const CrsItem& value) {
-            return data.insert(pos, value);
-        }
-
-        bool empty() {
-            return data.empty();
-        }
-
-        reference at(size_t pos) {
-            return data.at(pos);
-        }
-
-        ValueWrapper& operator[](size_t pos) {
-            if (tmp != nullptr) {
-                delete tmp;
-                tmp = nullptr;
-            }
-            auto found = std::find_if(first, last, [&pos](CrsItem &item){return pos == item.first;});
-            if (found != last) {
-                tmp = new ValueWrapper(found->second);
-            } else {
-                tmp = new ValueWrapper(defaultValue);
-            }
-            return *tmp;
-        }
-    private:
-        ValueWrapper* tmp = nullptr;
-        WrappedType data;
-        iterator first;
-        iterator last;
-        T defaultValue = D;
-    };
+template<typename T, T D = T()>
+class VectorWrapper {
+    using iterator = typename SparsedColumn<T>::iterator;
+    using reference = typename SparsedColumn<T>::reference;
 
 public:
-    CRS() {
+    template<typename InputIt>
+    VectorWrapper(InputIt f, InputIt l, size_t r, Observer<T> *obs)
+      : first(f), last(l), row(r), observer(obs) {}
+
+    ValueWrapper<T,D>& operator[](size_t column) {
+        if (tmp != nullptr) {
+            delete tmp;
+            tmp = nullptr;
+        }
+        auto found = std::find_if(first, last, [&column](CrsItem<T> &item){ return column == item.first; });
+        if (found != last) {
+            tmp = new ValueWrapper<T,D>(&(found->second), row, column, observer);
+        } else {
+            tmp = new ValueWrapper<T,D>(&defaultValue, row, column, observer);
+        }
+        return *tmp;
+    }
+private:
+    iterator first;
+    iterator last;
+    size_t row;
+    ValueWrapper<T,D>* tmp = nullptr;
+    Observer<T> *observer;
+    T defaultValue = D;
+};
+
+template<typename T, T D = T()>
+class CRS : public Observer<T> {
+public:
+    explicit CRS() {
         rowPeter.resize(1, 0);
     }
-
-    void add(const T &value, size_t column, size_t row) {
-        if (auto existPos = exists(column, row)) {
-            if (value == D) {
-                std::cout << "\tOperation remove " << column << " " << row << std::endl;
-                sparsedColumn.erase(sparsedColumn.begin() + *existPos);
-                for (size_t r = row + 1; r < rowPeter.size(); ++r) {
-                    --rowPeter[r];
-                }
-                if (row + 2 == rowPeter.size()) {
-                    if(auto l = std::lower_bound(rowPeter.begin(), rowPeter.end(), rowPeter.back()); l != rowPeter.end()) {
-                        rowPeter.erase(l+1, rowPeter.end());
-                    }
-                }
-            } else {
-                std::cout << "\tOperation change value " << column << " " << row << std::endl;
-                sparsedColumn.at(*existPos).second = value;
-            }
-        } else {
-            std::cout << "\tOperation create " << column << " " << row << std::endl;
-            if (row >= rowPeter.size() - 1) {
-                rowPeter.resize(row + 2, rowPeter.back());
-            }
-            auto begin = sparsedColumn.begin() + rowPeter[row];
-            auto end = sparsedColumn.begin() + rowPeter[row + 1];
-            auto comparator = [](CrsItem item1, CrsItem item2){
-                return item1.first < item2.first;
-            };
-            auto found = std::lower_bound(begin, end, CrsItem(column, D), comparator);
-            sparsedColumn.insert(found, {column, value});
-            for (size_t r = row + 1; r < rowPeter.size(); ++r) {
-                ++rowPeter[r];
-            }
+    void remove(size_t row, size_t column) override {
+        auto begin = sparsedColumn.begin() + rowPeter[row];
+        auto end = sparsedColumn.begin() + rowPeter[row + 1];
+        auto comparator = [&column](CrsItem<T> item){return column == item.first;};
+        auto found = std::find_if(begin, end, comparator);
+        if (found == end) {
+            return;
         }
+        sparsedColumn.erase(found);
+        trimTail(row);
     }
 
-    std::optional<size_t> exists(size_t column, size_t row) {
-        if (rowPeter.size() >= row + 2 && rowPeter[row] != rowPeter[row + 1] && !sparsedColumn.empty()) {
-            auto begin = sparsedColumn.begin() + rowPeter[row];
-            auto end = sparsedColumn.begin() + rowPeter[row + 1];
-            auto comparator = [&column](CrsItem item){return column == item.first;};
-            auto found = std::find_if(begin, end, comparator);
-            if (found != end) {
-                return found - sparsedColumn.begin();
-            }
+    T& insert(size_t row, size_t column, const T& value) override {
+        if (row >= rowPeter.size() - 1) {
+            rowPeter.resize(row + 2, rowPeter.back());
         }
-        return {};
+        auto begin = sparsedColumn.begin() + rowPeter[row];
+        auto end = sparsedColumn.begin() + rowPeter[row + 1];
+        auto comparator = [](CrsItem<T> item1, CrsItem<T> item2){
+            return item1.first < item2.first;
+        };
+        auto found = std::lower_bound(begin, end, CrsItem<T>(column, D), comparator);
+        auto inserted = sparsedColumn.insert(found, {column, value});
+        for (size_t r = row + 1; r < rowPeter.size(); ++r) {
+            ++rowPeter[r];
+        }
+        return inserted->second;
     }
 
-    void print() {
+    void dump() {
         std::cout << "Row indices: ";
         for (auto r: rowPeter) {
             std::cout << r+1 << " ";
@@ -155,24 +130,36 @@ public:
         for (auto [c,v]: sparsedColumn) {
             std::cout << v << " ";
         }
-        std::cout << std::endl;
+        std::cout << std::endl << std::endl;
     }
 
-    VectorWrapper& operator[](size_t rowIdx) {
+    VectorWrapper<T, D>& operator[](size_t row) {
         if (buf != nullptr) {
             delete buf;
         }
-        if (rowIdx + 2 > rowPeter.size()) {
-            buf = new VectorWrapper(sparsedColumn.begin() + rowPeter.back(), sparsedColumn.begin() + rowPeter.back());
+        if (row + 2 > rowPeter.size()) {
+            buf = new VectorWrapper<T, D>(sparsedColumn.begin() + rowPeter.back(), sparsedColumn.begin() + rowPeter.back(), row, this);
         } else {
-            buf = new VectorWrapper(sparsedColumn.begin() + rowPeter[rowIdx], sparsedColumn.begin() + rowPeter[rowIdx + 1]);
+            buf = new VectorWrapper<T, D>(sparsedColumn.begin() + rowPeter[row], sparsedColumn.begin() + rowPeter[row + 1], row, this);
         }
         return *buf;
     }
 
 private:
-    VectorWrapper *buf = nullptr;
-    VectorWrapper sparsedColumn;
+    void trimTail(size_t row) {
+        for (size_t r = row + 1; r < rowPeter.size(); ++r) {
+            --rowPeter[r];
+        }
+        if (row + 2 == rowPeter.size()) {
+            if(auto l = std::lower_bound(rowPeter.begin(), rowPeter.end(), rowPeter.back()); l != rowPeter.end()) {
+                rowPeter.erase(l+1, rowPeter.end());
+            }
+        }
+    }
+
+private:
+    VectorWrapper<T, D> *buf = nullptr;
+    SparsedColumn<T> sparsedColumn;
     std::vector<size_t> rowPeter;
 };
 
