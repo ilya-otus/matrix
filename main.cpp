@@ -25,7 +25,7 @@ int main(int , char **)
     c1.print();
     std::cout << c1[0][0] << std::endl;
     std::cout << c1[0][2] << std::endl;
-    (((c1[0][2] = 12) = 21) = 121) = 0;
+    ((c1[0][2] = 12) = 21) = 121;
     std::cout << c1[0][2] << std::endl;
     std::cout << c1[0][3] << std::endl;
     std::cout << c1[0][7] << std::endl;
