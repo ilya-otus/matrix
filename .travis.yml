@@ -12,7 +12,7 @@ env:
     - PACKAGE_FULL_VERSION=${MAJOR_VERSION}.${MINOR_VERSION}.${TRAVIS_BUILD_NUMBER}
     - PACKAGE_NAME=matrix-${PACKAGE_FULL_VERSION}-Linux.deb
 script:
-- cmake .
+- cmake . -DCMAKE_CXX_COMPILER=/usr/local/clang-7.1.0/bin/clang -DCMAKE_CC_COMPILER=/usr/local/clang-7.1.0/bin/clang
 - cmake --build .
 - cmake --build . --target test
 - cmake --build . --target package
