@@ -5,6 +5,11 @@ before_script:
 - echo "deb http://archive.ubuntu.com/ubuntu xenial main universe" | sudo tee -a /etc/apt/sources.list.d/xenial.list
 - sudo apt-get update
 - sudo apt-get install libspdlog-dev -y
+- sudo apt-get -y install software-properties-common
+- sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+- sudo apt-get update
+- sudo apt-get install clang-7 -y
+
 env:
     global:
     - MAJOR_VERSION=0
