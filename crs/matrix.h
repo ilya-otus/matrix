@@ -204,3 +204,5 @@ private:
     T mDefaultValue = D;
 };
 
+template <typename T, T D>
+using Matrix = CRS<T, D>;

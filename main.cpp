@@ -2,7 +2,7 @@
 
 int main(int , char **)
 {
-    CRS<int, 0> matrix;
+    Matrix<int, 0> matrix;
     for (int i = 0; i <= 9; ++i) {
         matrix[i][i] = i;
     }
