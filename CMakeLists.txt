@@ -18,7 +18,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/crs)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
 add_executable(matrix main.cpp)
 
-set_target_properties(matrix crs test_version PROPERTIES
+set_target_properties(matrix crs PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     COMPILE_OPTIONS "-Wpedantic;-Wall;-Wextra"
@@ -34,5 +34,6 @@ set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set(CPACK_PACKAGE_CONTACT podshivalov.ilya@yandex.ru)
 include(CPack)
+add_test(matrix_test_version ${CMAKE_CURRENT_BINARY_DIR}/tests/test_version)
+add_test(matrix_tests ${CMAKE_CURRENT_BINARY_DIR}/tests/test_matrix)
 enable_testing()
-add_test(matrix_tests ${CMAKE_CURRENT_BINARY_DIR}/tests/test_version)
