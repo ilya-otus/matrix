@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(matrix_test_cell)
 BOOST_AUTO_TEST_CASE(matrix_test_canonical_eq)
 {
     Matrix<int, -7> matrix;
-    //BOOST_CHECK_EQUAL(matrix.size(), 0);
+    BOOST_CHECK_EQUAL(matrix.size(), 0);
     //matrix[12][11]=-7;
     //BOOST_CHECK_EQUAL(matrix.size(), 0);
     //(matrix[12][11]=-7)=0;
