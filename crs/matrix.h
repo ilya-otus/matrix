@@ -29,7 +29,7 @@ public:
     ValueWrapper& operator=(const T& val) {
         if (value == observer->defaultValue() && val != *(observer->defaultValue())) {
             value = &(observer->insert(row, column, val));
-        } else if (val == *(observer->defaultValue())) {
+        } else if (value != observer->defaultValue() && val == *(observer->defaultValue())) {
             observer->remove(row, column);
             value = observer->defaultValue();
         } else {
@@ -167,7 +167,7 @@ public:
             delete buf;
         }
         if (row + 2 > rowPeter.size()) {
-            buf = new VectorWrapper<T>(sparsedColumn.begin() + rowPeter.back(), sparsedColumn.begin() + rowPeter.back(), row, this);
+            buf = new VectorWrapper<T>(sparsedColumn.end(), sparsedColumn.end(), row, this);
         } else {
             buf = new VectorWrapper<T>(sparsedColumn.begin() + rowPeter[row], sparsedColumn.begin() + rowPeter[row + 1], row, this);
         }
