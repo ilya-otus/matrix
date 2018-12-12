@@ -27,7 +27,7 @@ public:
     ValueWrapper(T *val, size_t r, size_t c, Observer<T> *obs)
       : value(val), row(r), column(c), observer(obs) {}
     ValueWrapper& operator=(const T& val) {
-        if (value == observer->defaultValue() && val != *observer->defaultValue()) {
+        if (value == observer->defaultValue() && val != *(observer->defaultValue())) {
             value = &(observer->insert(row, column, val));
         } else if (val == *(observer->defaultValue())) {
             observer->remove(row, column);
