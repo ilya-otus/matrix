@@ -3,11 +3,10 @@
 int main(int , char **)
 {
     Matrix<int, 0> matrix;
-    for (int i = 0; i <= 9; ++i) {
+    const size_t upperBound = 9;
+    for (size_t i = 0; i <= upperBound; ++i) {
         matrix[i][i] = i;
-    }
-    for (int i = 0, j = 9; i <= 9 && j >= 0; ++i, --j) {
-        matrix[i][j] = j;
+        matrix[upperBound - i][i] = i;
     }
     for (int i = 1; i <= 8; ++i) {
         for (int j = 1; j <= 8; ++j) {
@@ -24,4 +23,5 @@ int main(int , char **)
         std::tie(row, col, val) = cell;
         std::cout << row << "\t" << col << "\t" << val << std::endl;
     }
+    return 0;
 }

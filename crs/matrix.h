@@ -57,6 +57,11 @@ public:
     template<typename InputIt>
     VectorWrapper(InputIt f, InputIt l, size_t r, Observer<T> *obs)
       : first(f), last(l), row(r), observer(obs) {}
+    ~VectorWrapper() {
+        if (tmp != nullptr) {
+            delete tmp;
+        }
+    }
     ValueWrapper<T>& operator[](size_t column) {
         if (tmp != nullptr) {
             delete tmp;
@@ -118,6 +123,11 @@ public:
     explicit CRS() {
         rowPeter.resize(1, 0);
     }
+    ~CRS() {
+        if (buf != nullptr) {
+            delete buf;
+        }
+    }
     void remove(size_t row, size_t column) override {
         auto begin = sparsedColumn.begin() + rowPeter[row];
         auto end = sparsedColumn.begin() + rowPeter[row + 1];
@@ -165,6 +175,7 @@ public:
     VectorWrapper<T>& operator[](size_t row) {
         if (buf != nullptr) {
             delete buf;
+            buf = nullptr;
         }
         if (row + 2 > rowPeter.size()) {
             buf = new VectorWrapper<T>(sparsedColumn.end(), sparsedColumn.end(), row, this);
