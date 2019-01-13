@@ -88,7 +88,8 @@ class CRS : public Observer<T> {
     class iterator {
     public:
         using iterator_category = std::random_access_iterator_tag;
-        iterator(size_t pos, SparsedColumn<T> &columns, std::vector<size_t> &rows)
+        using sposition = typename SparsedColumn<T>::iterator;
+        iterator(sposition pos, SparsedColumn<T> &columns, std::vector<size_t> &rows)
           : position(pos), sparsedColumn(columns), rowPeter(rows) {}
         ~iterator() = default;
         iterator &operator=(iterator &other) {
@@ -98,24 +99,26 @@ class CRS : public Observer<T> {
         }
         bool operator==(iterator &other) {
             return position == other.position &&
-                sparsedColumn[position] == other.sparsedColumn[position];
+                std::lower_bound(rowPeter.begin(), rowPeter.end(), position - sparsedColumn.begin()) == 
+                std::lower_bound(other.rowPeter.begin(), other.rowPeter.end(), position - other.sparsedColumn.begin());
         }
         bool operator!=(iterator &other) {
             return position != other.position ||
-                sparsedColumn[position] != other.sparsedColumn[position];
+                std::lower_bound(rowPeter.begin(), rowPeter.end(), position - sparsedColumn.begin()) != 
+                std::lower_bound(other.rowPeter.begin(), other.rowPeter.end(), position - other.sparsedColumn.begin());
         }
         iterator operator++() {
             ++position;
             return *this;
         }
         std::tuple<size_t, size_t, T> operator*() const {
-            auto found = std::upper_bound(rowPeter.begin(), rowPeter.end(), position);
+            auto found = std::upper_bound(rowPeter.begin(), rowPeter.end(), position - sparsedColumn.begin());
             return std::make_tuple(found - rowPeter.begin() - 1,
-                    sparsedColumn[position].first,
-                    sparsedColumn[position].second);
+                    position->first,
+                    position->second);
         }
     private:
-        size_t position;
+        sposition position;
         SparsedColumn<T> &sparsedColumn;
         std::vector<size_t> &rowPeter;
     };
@@ -191,10 +194,10 @@ public:
         return sparsedColumn.size();
     }
     iterator begin() {
-        return iterator(0, sparsedColumn, rowPeter);
+        return iterator(sparsedColumn.begin(), sparsedColumn, rowPeter);
     }
     iterator end() {
-        return iterator(sparsedColumn.size(), sparsedColumn, rowPeter);
+        return iterator(sparsedColumn.end(), sparsedColumn, rowPeter);
     }
 
 private:
